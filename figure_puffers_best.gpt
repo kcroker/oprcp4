@@ -1,0 +1,88 @@
+reset
+
+set term tikz size 6cm,8cm standalone
+set output "figure_puffers.tex"
+set macros
+set multiplot
+
+# x- and ytics for each row resp. column
+NOXTICS = "set format x ''; \
+          unset xlabel"
+XTICS = "set xlabel '\\tiny{Scale factor $a$}' offset 0,0.8; set format x '\\tiny{%.1f}'; set xtics (0, 0.2, 0.4, 0.6, 0.8, 1) offset 0,0.5"
+NOYTICS = "set format y ''; unset ylabel"
+
+# Margins for each row resp. column
+TMARGIN = "set tmargin at screen 0.90; set bmargin at screen 0.70"
+BMARGIN = "set tmargin at screen 0.70; set bmargin at screen 0.10"
+LMARGIN = "set lmargin at screen 0.10; set rmargin at screen 0.90"
+
+# The colored line
+set style line 2 lc palette lt 1 lw 2 dt 1
+set style line 4 lc palette lt 2 lw 2 dt 3
+
+# The thin dashed indicator
+set style line 3 lc -1 lt 11 lw 1 dt 4
+
+set palette model RGB
+set palette defined (1e-4 '#44ddff', 1 '#CC0000' )
+set logscale cb
+set cbrange [1e-4:1] 
+
+set cbtics offset -1.3,0 nomirror format ''
+
+set cblabel '\tiny{Equation of state $w_s$}' offset -0.2,-5.4
+set label 1 '\tiny{$1$}' at 1.07, 1e-2
+set label 2 '\tiny{$10^{-1}$}' at 1.07, 1e-7
+set label 3 '\tiny{$10^{-2}$}' at 1.07, 1e-12
+set label 4 '\tiny{$10^{-4}$}' at 1.07, 1e-22
+
+set xrange [0:1]
+
+extract_w(x)=system(sprintf("echo %s | sed -r 's/lcdm_puffers\\/puffer\\[(.*)\\].*/\\1/'", x))
+
+## Plot the energy density in puffers
+## This equation comes from the definition of q, and the first friedmann equation
+@NOXTICS
+@TMARGIN; @LMARGIN
+set colorbox vertical user origin 0.91, 0.1 size 0.05, 0.8
+set ytics 1e-10, 100, 1e-2 offset 1
+
+set ylabel '\tiny{$\Delta q~(\rho_{\mathrm{cr}})$}' offset 2.5
+set format y '\tiny{$10^{%T}$}'
+
+set yrange [1e-7:1e-2]
+set logscale y
+
+# Get the puffers for "matter light" scenario
+puffers=system("ls -d1 lcdm_puffers/puffer\\[*.dat")
+plot for [puff in puffers] sprintf("<paste %s lcdm_puffers/puffer_reference.dat", puff) every 23 using 1:($5**2*$4 - $2**2*$1):(extract_w(puff) + 0) ls 2 w lines not, 1e-3 ls 3 not
+
+unset ytics
+unset ylabel
+unset colorbox
+unset label 1
+unset label 2
+unset label 3
+unset label 4
+
+## Plot the fractional difference in Hubble constant (same as for the scale velocities)
+@XTICS
+@BMARGIN; @LMARGIN
+unset colorbox
+set ytics 1e-10, 100, 1e-3 offset 1
+set ylabel '\tiny{$\Delta H/H$}' offset 2.5,0
+set format y '\tiny{$10^{%T}$}'
+set yrange [1e-8:9e-3]
+set logscale y
+
+# Get the puffers
+puffers=system("ls -d1 lcdm_puffers/puffer\\[*.dat")
+plot for [puff in puffers] sprintf("<paste %s lcdm_puffers/puffer_reference.dat", puff) every 23 using 1:(($5 - $2)/$5):(extract_w(puff) + 0) ls 2 w lines not, 1e-3 ls 3 not
+
+unset ytics
+unset xtics
+unset ylabel
+unset xlabel
+
+unset multiplot
+set term x11

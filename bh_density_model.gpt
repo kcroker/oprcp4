@@ -1,0 +1,73 @@
+# Clear slate
+clear
+reset
+
+# Load the common model
+load "madaudickinson2014_stellarz.gpt"
+
+# Get max precision
+set format x "%e"
+set format y "%e"
+
+# Integrate it for LCDM
+set table "stellar_diffdensity_temp.dat"
+set samples 1000
+plot [20:-0.1] dStardz(x, -1, 0)
+unset table
+
+# Generate the integrated quantity
+system("./rint.py stellar_diffdensity_temp.dat -0.1 > stellar_density_temp.dat")
+
+# Now encode the sex
+k(z,A,zeta)=A*exp(z*zeta)
+b(z,A,zeta)=A*exp(z*zeta)
+
+# big error?
+ms(z)=11*exp(z*0.0187)
+
+# Use the standard parameters
+alpha = -2.35
+mc = 0.1 # M_sol
+
+# Define the expected BH density
+Xi_rapid(z)=(1-R)*(k(z, 0.19, 0.09)*(ms(z)/mc)**(alpha+2) - b(z, 0.038, 0.31)/mc*(alpha + 2)/(alpha + 1)*(ms(z)/mc)**(alpha + 1))
+Xi_delayed(z)=(1-R)*(k(z, 0.23, 0.083)*(ms(z)/mc)**(alpha+2) - b(z, 1.11, 0.14)/mc*(alpha + 2)/(alpha + 1)*(ms(z)/mc)**(alpha + 1))
+
+set table "Xi.tab"
+plot [20:0] Xi_rapid(x), Xi_delayed(x)
+unset table
+
+# Record it for numerical differentiation
+set table "bh_density_temp.dat"
+plot "stellar_density_temp.dat" using 1:(Xi_rapid($1)*$2), "" using 1:(Xi_delayed($1)*$2)
+unset table
+
+# Plot the derivative
+zMax = 2.0 #1.0/9
+set table "dbhdz_temp.dat"
+x0=NaN; y0=NaN; plot [zMax:-0.1] 'bh_density_temp.dat' using (dx=$1-x0,x0=$1,$1-dx/2.0):(dy=$2-y0,y0=$2, dy/dx) index 0
+x0=NaN; y0=NaN; plot [zMax:-0.1] 'bh_density_temp.dat' using (dx=$1-x0,x0=$1,$1-dx/2.0):(dy=$2-y0,y0=$2, dy/dx) index 1
+unset table
+
+# Now plot it in scale factor
+set table "dbhda_final.dat"
+plot [1.0/(zMax + 1):1.1] 'dbhdz_temp.dat' using (1/(1+$1)):(-$2*((1+$1)**2)) index 0 t "BH Density (Rapid)", "" using (1/(1+$1)):(-$2*((1+$1)**2)) index 1 t "BH Density (Delayed)"
+unset table
+
+# Now make the second derivative
+set table "d2bhda2_final.dat"
+x0=NaN; y0=NaN; plot [1.0/(zMax+1):1.1] 'dbhda_final.dat' every 3 using (dx=$1-x0,x0=$1,$1-dx/2):(dy=$2-y0,y0=$2, dy/dx) index 0
+x0=NaN; y0=NaN; plot [1.0/(zMax+1):1.1] 'dbhda_final.dat' every 3 using (dx=$1-x0,x0=$1,$1-dx/2):(dy=$2-y0,y0=$2, dy/dx) index 1
+unset table
+
+# Now make separate tables
+set table 'tmp0.dat'
+plot "dbhda_final.dat" index 0
+set table 'tmp1.dat'
+plot "dbhda_final.dat" index 1
+unset table
+system("paste tmp0.dat tmp1.dat > tmp01.dat")
+
+## Yes we can
+f(a,w0,wa)=3*OmegaL*(eta(a) - (1+w0+wa) + wa*a)*exp(3*wa*(a-1))/(a**(3*(w0+wa) + 1))
+

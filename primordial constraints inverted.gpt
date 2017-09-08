@@ -1,0 +1,83 @@
+set term cairolatex color standalone size 6cm,6cm
+set output "figure-primordial.tex"
+
+set style fill transparent solid 0.4 border
+
+# Functions that matter
+eta(gamma,chi)=27*(1+chi)*(gamma)**(1.0/3.0)/14
+beta(T,eta,chi)=(2.75/T)**(4 - 3*eta)*1e3
+
+set format x "%g"
+set format y "%g"
+set yrange [ 1e-84 : 1e-25 ]
+set xrange [1e-2:1]
+set logscale
+
+# Aaaaand we have to polygon the regions again because, well
+set table "fckExisting.tab"
+plot '+' using 1:(1e-30) w filledcurves above y=1e-84
+
+set table "fck11K.tab"
+plot '+' using 1:(beta(1e11, $1, 1)) w filledcurves above y=1e-84
+
+set table "fck16K.tab"
+plot '+' using 1:(beta(1e16, $1, 1)) w filledcurves above y=1e-84
+
+set table "fck22K.tab"
+plot '+' using 1:(beta(1e22, $1, 1)) w filledcurves above y=1e-84
+
+unset table
+
+set multiplot
+
+# Explicitly set the margins so gnuplot can try to clip without being retarded
+set tmargin at screen 0.15; set bmargin at screen 0.95
+set lmargin at screen 0.15; set rmargin at screen 0.95
+
+set format x '\scalebox{0.5}{$10^{%T}$}'
+set format y '\scalebox{0.5}{%T}'
+unset key
+set xlabel '\scalebox{0.5}{Gravastar $\eta$}' offset 0,1
+set xtics offset 0,0.5
+set ylabel '\scalebox{0.5}{pBH $\rho_\mathrm{cr}$ fraction $\left[\log_{10}\left(\beta_\mathrm{max}\right)\right]$}' offset 6.3, 0
+set ytics offset 0.7,0.1
+
+## Now draw the overlays
+# Store the region in the variable 'polypoints'
+eval(system('./skript.py fckExisting.tab second polypoints'))
+eval(sprintf("set object 1 polygon behind clip fillcolor rgb 'gray' %s", polypoints))
+
+eval(system('./skript.py fck22K.tab second polypoints'))
+eval(sprintf("set object 2 polygon behind clip fillcolor rgb 'purple' %s", polypoints))
+
+eval(system('./skript.py fck16K.tab second polypoints'))
+eval(sprintf("set object 3 polygon behind clip fillcolor rgb 'purple' %s", polypoints))
+
+eval(system('./skript.py fck11K.tab second polypoints'))
+eval(sprintf("set object 4 polygon behind clip fillcolor rgb 'purple' %s", polypoints))
+
+# Draw them first
+plot NaN
+
+# Turn off the manually hacked curves
+unset object 1
+unset object 2
+unset object 3
+unset object 4
+
+# Ridiculous stuff so I can write on top of a filled region
+unset border
+unset xtics
+unset ytics
+unset ylabel
+unset xlabel
+
+set label 3 front at 7e-2, 5e-40 '{\color{black}\scalebox{0.5}{$10^{11}$ K}}' rotate by 10
+set label 2 front at 1e-1, 1e-57 '{\color{black}\scalebox{0.5}{$10^{16}$ K}}' rotate by 20
+set label 1 front at 2.3e-1, 8e-73 '{\color{black}\scalebox{0.5}{$10^{22}$ K}}' rotate by 45
+
+set key top left at 1e-2,4e-27 reverse width -13 samplen 1.8
+plot '+'  using (NaN):(NaN):(NaN) w filledcurves t '\scalebox{0.5}{Carr \emph{et al.} 2003}' lc rgb 'gray', "" using (NaN):(NaN):(NaN) w filledcurves t '\scalebox{0.5}{Gravastars viable}' lc rgb 'purple', 1e-30 dt '-' lw 1 lc rgb "black" not
+
+unset multiplot
+set term x11

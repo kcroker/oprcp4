@@ -1,0 +1,21 @@
+# Common gpt file with all the stellar model stuff
+
+# Planck best-fit 2016 values
+Omegam = 0.308
+OmegaL = 0.692
+
+# Its one in our units
+H0 = 1
+
+# This is the gas return fraction on star death
+R = 0.27
+
+# Converts from astronomer units to \rho_cr/reciprocal hubble
+UnitCorrection = 0.277
+
+# From Madau & Dickinson 2014.
+# Generalized to include the Planck linear model for DE evolution
+# (though this may introduce very small inconsistencies with the rest of the Dickinson model)
+psi(z)=UnitCorrection*0.015*(1+z)**2.7/(1 + ( (1+z)/2.9 )**5.6)
+H(z,c0,c1)=H0*sqrt(Omegam*(1+z)**3 + OmegaL*(1+z)**(3*(c0 + c1 + 1))*exp(-3*c1*z/(z + 1)))
+dStardz(z,c0,c1)=(R - 1)*psi(z)/((1+z)*H(z,c0,c1))

@@ -1,0 +1,88 @@
+# Clean slate
+clear
+reset
+load "madaudickinson2014_stellarz.gpt"
+
+# Goodbye tikz.  Reasonable transparency.
+set terminal cairolatex color standalone size 6cm,6cm
+set output "figure-planck-consistency-eta.tex"
+
+set multiplot
+set lmargin at screen 0.1
+set tmargin at screen 0.1
+set bmargin at screen 0.9
+set rmargin at screen 0.9
+
+set key top right
+set style fill transparent solid 0.5
+
+# The zoomed x-range
+set format y '\scalebox{0.5}{%.1f}'
+set format x '\scalebox{0.5}{%.1f}'
+
+# Define some greys
+grey2="#FF6666"
+grey1="#66FF66"
+grey3="#6666FF"
+purple="#FF00FF"
+
+# Xrange
+xMin = -1.2
+xMax = -0.4
+set xrange [xMin:xMax]
+
+# The normal y-range
+yMin = -3
+yMax = 2
+
+set yrange [yMin:yMax]
+set ytics offset 0.5,0
+set xtics offset 0,0.5
+set ylabel '\scalebox{0.5}{$w_a$}' offset 8,0
+set xlabel '\scalebox{0.5}{$w_0$}' offset 0,1.2
+set border
+set key samplen 1.3
+
+# Define the horizonal constraint relation
+constraint(w0, dBHp, dBHpp, etap) = dBHp/OmegaL*w0 + ( 1/(3*OmegaL)*(dBHpp + dBHp) - etap)
+
+# Stack correctly
+plot 'planck_w0wa.dat' using 1:2 every :::1::1 index 0 w filledcurve lc rgb grey1 t '\scalebox{0.5}{Planck+WL}', '' using 1:2 every :::0::0 index 0 w filledcurve lc rgb grey1 not, '' using 1:2 every :::1::1 index 2 smooth bezier w filledcurve lc rgb grey2 t '\scalebox{0.5}{Planck+WBR}', '' using 1:2 every :::0::0 index 2 smooth bezier w filledcurve lc rgb grey2 not, '' using 1:2 index 1 every :::1::1 smooth bezier w filledcurve lc rgb grey3 t '\scalebox{0.5}{Planck+BSH}', '' using 1:2 every :::0::0 index 1 smooth bezier w filledcurve lc rgb grey3 not, constraint(x, 5.356e-5, -2.214e-4, 0) lc rgb "orange" lw 2 t "\\scalebox{0.5}{Gravastars}"
+
+unset xlabel
+unset ylabel
+unset xtics
+unset ytics
+unset border
+
+eta1 = 5e-1 - 1
+eta2 = 2e-1 - 1
+eta3 = 3e-2 - 1
+set linetype 2 lw 3 dt 1
+
+set parametric
+
+# Draw the positivity constraints
+plot [0:yMax] -t/10.0 + eta1,t not ls 2 lc rgb "yellow" w filledcurves above x=xMin
+plot [0:yMax] -t/10.0 + eta2,t not ls 2 lc rgb "red" w filledcurves above x=xMin
+plot [0:yMax] -t/10.0 + eta3,t not ls 2 lc rgb purple w filledcurves above x=xMin
+
+plot [yMin:0] eta1, t ls 2 lc rgb "yellow" not w filledcurves above x=xMin
+plot [yMin:0] eta2, t ls 2 lc rgb "red" not w filledcurves above x=xMin
+plot [yMin:0] eta3, t ls 2 lc rgb purple not w filledcurves above x=xMin
+
+# Put the crosshairs
+set linetype 1 lc rgb "black" lw 1 dt "___"
+# Horizontal
+plot [xMin:xMax] t,0 not 
+# Vertical
+
+# Get the stacking correct
+set label 1 '\scalebox{0.5}{$\bar{\eta} = 5\times10^{-1}$}' at -0.52, -1.7 front rotate by -90
+set label 2 '\scalebox{0.5}{$\bar{\eta} = 2\times10^{-1}$}' at -0.82, -1.7 front rotate by -90
+set label 3 '\scalebox{0.5}{$\bar{\eta} = 3\times10^{-2}$}' at -1.02, -1.7 front rotate by -90
+
+plot [yMin:yMax] -1,t not 
+
+unset parametric
+unset multiplot

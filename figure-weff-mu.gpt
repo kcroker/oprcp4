@@ -1,0 +1,178 @@
+# Load the required tables
+# Based on the Madau and Dickinson 2014 models with LambdaCDM
+#load "bh_density_model.gpt"
+load "madaudickinson2014_stellarz.gpt"
+
+# Before all the formatting garbage
+eta = 3e-2
+set table "fck3e-2.tab"
+plot "tmp01.dat" using 1:(- $2/(3*OmegaL*$1**(2 - 3*eta))*(1 - $2/(OmegaL*$1**(3 - 3*eta)))):(- $5/(3*OmegaL*$1**(2 - 3*eta))*(1 - $5/(OmegaL*$1**(3 - 3*eta)))) lw 2 lc rgb "purple" w filledcurves not
+
+eta = 5e-1
+set table "fck5e-1.tab"
+plot "tmp01.dat" using 1:(- $2/(3*OmegaL*$1**(2 - 3*eta))*(1 - $2/(OmegaL*$1**(3 - 3*eta)))):(- $5/(3*OmegaL*$1**(2 - 3*eta))*(1 - $5/(OmegaL*$1**(3 - 3*eta)))) lw 2 lc rgb "purple" w filledcurves not
+
+eta = 2e-1
+set table "fck2e-1.tab"
+plot "tmp01.dat" using 1:(- $2/(3*OmegaL*$1**(2 - 3*eta))*(1 - $2/(OmegaL*$1**(3 - 3*eta)))):(- $5/(3*OmegaL*$1**(2 - 3*eta))*(1 - $5/(OmegaL*$1**(3 - 3*eta)))) lw 2 lc rgb "purple" w filledcurves not
+unset table
+
+# OMFG GNUPLOT IS A HACK
+a(z) = 1.0/(1+z)
+
+purple="#FF00FF"
+dpurple="#BB00BB"
+dred="#BB0000"
+dyellow="#BBBB00"
+dblue="#00BBBB"
+
+# Set some visualization stuff
+zMax = 5
+
+set term cairolatex color size 6cm,6cm standalone
+set output "figure-weff-mu.tex"
+set style fill transparent solid 0.5 noborder
+
+set xlabel '\scalebox{0.5}{Scale factor $a$}' offset -8,1.1
+set x2label '\scalebox{0.5}{Scale factor $a$}' offset 7,-1.1
+set ylabel '\scalebox{0.5}{$w_\mathrm{eff} + 0.97$}' offset 1.5
+set format x '\scalebox{0.5}{%.1f}'
+set format x2 '\scalebox{0.5}{%.1f}'
+set xtics 0.2, 0.1, 0.5 offset 0,0.5 nomirror
+set x2tics 0.6, 0.1, 1 nomirror offset 0,-0.5
+
+set format y '\scalebox{0.5}{\shortstack{$%.1t$ \\ $10^{%T}$}}'
+set mytics
+set ytics 1e-3 offset 0.4 nomirror rotate by 45
+
+set linestyle 1 dt 1 lc rgb "black" lw 2
+set linestyle 2 dt '-' lc rgb "black"
+set linestyle 4 dt '-' lc rgb "black" lw 1
+set linestyle 3 dt 5 lc rgb "black"
+
+set multiplot
+
+set tmargin at screen 0.1; set bmargin at screen 0.9
+set lmargin at screen 0.15; set rmargin at screen 0.95
+
+set key bottom right samplen 0.9 spacing 0.7 at  0.99, -3.9e-3
+
+f_rapid(x)=w0_r + wa_r*(1-x)
+f_delayed(x)=w0_d + wa_d*(1-x)
+
+# Shift everything into a sane space
+# (remove the -1 + eta)
+eta = 3e-2
+fit [0.9:1] f_rapid(x) "dbhda_final.dat" using 1:(- $2/(3*OmegaL*$1**(2 - 3*eta))*(1 - $2/(OmegaL*$1**(3 - 3*eta)))) index 0 via w0_r,wa_r
+fit [0.9:1] f_delayed(x) "dbhda_final.dat" using 1:(- $2/(3*OmegaL*$1**(2 - 3*eta))*(1 - $2/(OmegaL*$1**(3 - 3*eta)))) index 1 via w0_d,wa_d
+
+# Need to HOLD the x-range, or else it chokes
+set xrange [a(zMax):1]
+
+unset key 
+plot "dbhda_final.dat" using 1:(- $2/(3*OmegaL*$1**(2 - 3*eta))*(1 - $2/(OmegaL*$1**(3 - 3*eta)))) index 0 w lines lw 2 lc rgb "orange" t '\scalebox{0.5}{Rapid}', "" using 1:(- $2/(3*OmegaL*$1**(2 - 3*eta))*(1 - $2/(OmegaL*$1**(3 - 3*eta)))) index 1 w lines lw 2 lc rgb "blue" t '\scalebox{0.5}{Delayed}', f_rapid(x) t '\scalebox{0.5}{Rapid fit}' ls 4 , f_delayed(x) t '\scalebox{0.5}{Delayed fit}' ls 4 
+
+unset object 1
+unset object 2
+unset object 3
+
+# HOLD the y-range
+set yrange [GPVAL_Y_MIN:GPVAL_Y_MAX]
+
+unset border
+unset xtics
+unset x2tics
+unset x2label
+unset ytics
+unset mxtics
+unset mytics
+unset key
+unset xlabel
+unset ylabel
+
+# Seems like you can't turn these things off, or else it does not know where to clip to...
+eta = 2e-1
+plot "dbhda_final.dat" using 1:(- $2/(3*OmegaL*$1**(2 - 3*eta))*(1 - $2/(OmegaL*$1**(3 - 3*eta)))) index 0  w lines  lw 2 lc rgb "orange" t '\scalebox{0.5}{Rapid}', "" using 1:(- $2/(3*OmegaL*$1**(2 - 3*eta))*(1 - $2/(OmegaL*$1**(3 - 3*eta)))) index 1 w lines  lw 2 lc rgb "blue" t '\scalebox{0.5}{Delayed}'
+
+# Put up some labels
+set label 1 '\scalebox{0.5}{$3\times 10^{-2}$}' at 0.32, -2.8e-3 rotate by 70
+set label 2 '\scalebox{0.5}{$2\times 10^{-1}$}' at 0.365, -1.3e-3 rotate by 54
+set label 3 '\scalebox{0.5}{$5\times 10^{-1}$}' at 0.355, -5.1e-4 rotate by 21
+
+eta = 5e-1
+plot "dbhda_final.dat" using 1:(- $2/(3*OmegaL*$1**(2 - 3*eta))*(1 - $2/(OmegaL*$1**(3 - 3*eta)))) index 0 w lines lw 2 lc rgb "orange" t '\scalebox{0.5}{Rapid}', "" using 1:(- $2/(3*OmegaL*$1**(2 - 3*eta))*(1 - $2/(OmegaL*$1**(3 - 3*eta)))) index 1 w lines lw 2 lc rgb "blue" t '\scalebox{0.5}{Delayed}'
+
+# Clean them up
+unset label 1
+unset label 2
+unset label 3
+
+# Restore previous eta
+eta = 3e-2
+
+set parametric
+plot [GPVAL_Y_MIN:GPVAL_Y_MAX] 0.9,t*0.02 ls 3 not
+
+plot [GPVAL_Y_MIN:GPVAL_Y_MAX] 0.85,t*0.022 ls 3 not
+set label 1 '\scalebox{0.5}{(inset)}' front at 0.88,-2e-4
+plot [0.85:1] t,-8.5e-5 ls 3 not
+
+unset label 1
+unset parametric
+unset yrange
+
+set tmargin at screen 0.1; set bmargin at screen 0.6
+set lmargin at screen 0.5; set rmargin at screen 0.95
+
+set x2range[0.85:1]
+yMin=-8.4e-5
+yMax=-2.5e-5
+set yrange[yMin:yMax]
+
+# More hax to get gnuplot to draw the object relative to x2y1
+# 1) Mirror y1 to y2
+# 2) Use arcane af syntax "second" specifier to use x2y2
+set y2range[yMin:yMax]
+
+# Store the region in the variable 'polypoints'
+eval(system('./skript.py fck5e-1.tab second polypoints'))
+eval(sprintf("set object 1 polygon behind clip fillcolor rgb 'yellow' %s", polypoints))
+
+eval(system('./skript.py fck2e-1.tab second polypoints'))
+eval(sprintf("set object 2 polygon behind clip fillcolor rgb 'red' %s", polypoints))
+
+eval(system('./skript.py fck3e-2.tab second polypoints'))
+eval(sprintf("set object 3 polygon behind clip fillcolor rgb purple %s", polypoints))
+
+# Draw them first
+plot NaN
+
+# Turn off the manually hacked curves
+unset object 1
+unset object 2
+unset object 3
+
+# Now establish the others
+set mxtics
+set ytics -8.5e-5, 1.25e-5, -2e-5 offset 0.4, 0 rotate by 45
+set mytics
+set x2tics 0.86, 0.04, 0.98 offset 0, -0.5
+set style line 4 lc rgb "#666666" lt -1 lw 1
+set border 6 ls 4 front
+set format y '\scalebox{0.5}{\shortstack{$%.1t$ \\ $10^{%T}$}}'
+set format x2 '\scalebox{0.5}{%.2f}'
+
+# Draw a key in these coordinates
+set key at second 1.00, -8.2e-5
+
+eta=3e-2
+plot "dbhda_final.dat" using 1:(- $2/(3*OmegaL*$1**(2 - 3*eta))*(1 - $2/(OmegaL*$1**(3 - 3*eta)))) index 0 w lines not lw 2 lc rgb "orange" axes x2y1 , ""  using 1:( - $2/(3*OmegaL*$1**(2 - 3*eta))*(1 - $2/(OmegaL*$1**(3 - 3*eta)))) index 1 w lines not lw 2 lc rgb "blue" axes x2y1, f_rapid(x) not w l ls 2 axes x2y1 , f_delayed(x) not w l ls 2 axes x2y1, "+" using (NaN):(NaN):(NaN) w filledcurves lc rgb "yellow" t '\scalebox{0.5}{$\bar{\eta} = 5\times10^{-1}$}', "+" using (NaN):(NaN):(NaN) w filledcurves lc rgb "red" t '\scalebox{0.5}{$\bar{\eta} = 2\times10^{-1}$}', "+" using (NaN):(NaN):(NaN) w filledcurves lc rgb purple t '\scalebox{0.5}{$\bar{\eta} = 3\times10^{-2}$}'
+
+unset x2tics
+unset ytics
+unset xtics
+unset key
+
+unset multiplot
+
+set term x11

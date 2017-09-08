@@ -1,0 +1,75 @@
+load "madaudickinson2014_stellarz.gpt"
+
+set logscale x
+
+set yrange [8:22]
+set xrange [1e-3:5e-1]
+
+A = 22.7
+Xi = 0.1
+drhodt_high = 5.4e-2
+drhodt_low = 5.4e-3
+
+# Plot the density today made at one moment in time
+final_rapid=3.02e-4
+final_delayed=3.25e-4
+viable_z_stellar(eta, OmegaBH, OL)=(OL/OmegaBH)**(1.0/(3*(1-eta))) - 1
+
+set table "darkages_inst_sugi2.tab"
+plot "+" using 1:(viable_z_stellar($1, final_rapid, 1.5*OmegaL)):(viable_z_stellar($1, final_rapid, OmegaL)) w filledcurves
+
+set table "darkages_inst.tab"
+plot "+" using 1:(viable_z_stellar($1, final_rapid, OmegaL)):(viable_z_stellar($1, final_delayed, OmegaL)) w filledcurves 
+
+set table "darkages_inst_sugina2.tab"
+plot "+" using 1:(viable_z_stellar($1, final_delayed, 1.0/2*OmegaL)):(viable_z_stellar($1, final_delayed, OmegaL)) w filledcurves
+
+unset table
+
+# Cutoff a for density production of BH that gives correct present-day \Omega_Lambda 
+a_cutoff(eta, onset_z)= eta > 2e-1 ? NaN : (OmegaL*sqrt(Omegam)/A/Xi/drhodt_low*(3*eta - 3.0/2) + (1.0/(1+onset_z))**(-3.0/2 + 3*eta))**(1.0/(3*eta - 3.0/2))
+
+set term cairolatex colour size 6cm,6cm standalone header '\usepackage{amssymb}'
+set output "figure-instantaneous-formation.tex"
+
+set multiplot
+
+# Explicitly set the margins so gnuplot can try to clip without being retarded
+set tmargin at screen 0.15; set bmargin at screen 0.95
+set lmargin at screen 0.15; set rmargin at screen 0.95
+
+set style fill transparent solid 0.5 border
+
+set format y '\scalebox{0.5}{%.0f}' 
+set ytics 10,2,24 offset 0.5,0
+set mytics
+set ylabel '\scalebox{0.5}{Instantaneous formation redshift $z_f$}' offset 5.5,0
+
+set format x '\scalebox{0.5}{$10^{%T}$}'
+set xtics offset 0,0.4
+set xlabel '\scalebox{0.5}{Gravastar $\eta$}' offset 0,1
+
+set key at first 6.5e-3, 21.5 samplen 0.7 reverse width -10.5
+
+eval(system('./skript.py darkages_inst.tab first polypoints'))
+eval(sprintf("set object 1 polygon front clip fillcolor rgb 'green' %s", polypoints))
+
+eval(system('./skript.py darkages_inst_sugi2.tab first polypoints'))
+eval(sprintf("set object 3 polygon front clip fillcolor rgb 'red' %s", polypoints))
+
+eval(system('./skript.py darkages_inst_sugina2.tab first polypoints'))
+eval(sprintf("set object 4 polygon front clip fillcolor rgb 'blue' %s", polypoints))
+
+# Draw exclusion rectangle
+set object 6 rectangle behind clip fs pattern 7 fillcolor rgb 'gray' from first 1.6e-1,GPVAL_Y_MAX to first 5e-1, GPVAL_Y_MIN
+
+# Set the labels
+set label 2 front at 9e-3, 17 '\scalebox{0.5}{$\Omega_\Lambda^\mathrm{eff} > \frac{3\Omega_\Lambda}{2}$}' rotate by 25 
+set label 3 front at 6e-2, 9.4 '\scalebox{0.5}{$\Omega_\Lambda^\mathrm{eff} < \frac{\Omega_\Lambda}{2}$}' rotate by 38
+set label 5 front at 1.33e-3, 8.6 '\scalebox{0.5}{Reionization $z_\mathrm{re}$}'
+
+plot 8.9 dt '--' lc rgb "black" lw 1 not, '+' using (NaN):(NaN):(NaN) w filledcurves t '\scalebox{0.5}{$\Omega_\Lambda^\mathrm{eff} = \Omega_\Lambda$}' lc rgb 'green', '+' using (NaN):(NaN):(NaN) w filledcurves t '\scalebox{0.5}{$\Omega_\Lambda^\mathrm{eff} > \Omega_\Lambda$}' lc rgb 'red', '+' using (NaN):(NaN):(NaN) w filledcurves t '\scalebox{0.5}{$\Omega_\Lambda^\mathrm{eff} < \Omega_\Lambda$}' lc rgb 'blue'
+
+unset key
+
+unset multiplot
